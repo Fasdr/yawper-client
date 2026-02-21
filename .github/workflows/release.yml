@@ -1,12 +1,18 @@
-name: Build Release Binaries
+name: Build and Publish Release
 
 on:
   workflow_dispatch:
-  release:
-    types: [created]
+    inputs:
+      version:
+        description: "Release version (e.g., v0.1.0)"
+        required: true
+
+# This permission is required for the bot to create a GitHub Release
+permissions:
+  contents: write
 
 jobs:
-  build:
+  build_and_release:
     name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -14,10 +20,12 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            artifact_name: yawper-client-linux
+            binary_name: yawper-client
+            release_name: yawper-client-linux
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            artifact_name: yawper_client.exe
+            binary_name: yawper-client.exe
+            release_name: yawper-client-windows.exe
 
     steps:
       - name: Checkout code
@@ -37,8 +45,20 @@ jobs:
       - name: Build Release
         run: cargo build --release --target ${{ matrix.target }}
 
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+      # Rename the files so they look clean on the Release page
+      - name: Rename binaries
+        shell: bash
+        run: |
+          mv target/${{ matrix.target }}/release/${{ matrix.binary_name }} target/${{ matrix.target }}/release/${{ matrix.release_name }}
+
+      # Automatically create the release and upload the file
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: ${{ matrix.artifact_name }}
-          path: target/${{ matrix.target }}/release/${{ matrix.artifact_name == 'yawper_client.exe' && 'yawper_client.exe' || 'yawper-client' }}
+          tag_name: ${{ github.event.inputs.version }}
+          name: Release ${{ github.event.inputs.version }}
+          files: target/${{ matrix.target }}/release/${{ matrix.release_name }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
