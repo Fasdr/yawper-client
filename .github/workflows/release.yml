@@ -2,6 +2,8 @@ name: Build Release Binaries
 
 on:
   workflow_dispatch:
+  release:
+    types: [created]
 
 jobs:
   build:
@@ -28,7 +30,9 @@ jobs:
 
       - name: Install Linux Dependencies
         if: matrix.os == 'ubuntu-latest'
-        run: sudo apt-get update && sudo apt-get install -y cmake libopus-dev pkg-config
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake pkg-config libopus-dev libasound2-dev libudev-dev libx11-dev libxcursor-dev libxrandr-dev libxi-dev libwayland-dev libxkbcommon-dev
 
       - name: Build Release
         run: cargo build --release --target ${{ matrix.target }}
