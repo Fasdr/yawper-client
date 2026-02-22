@@ -50,7 +50,7 @@ impl VoiceOutput {
             data.fill(0.0);
             for sample in data {
                 for consumer in active_sources.iter_mut() {
-                    *sample = consumer.try_pop().unwrap_or(0.0);
+                    *sample += consumer.try_pop().unwrap_or(0.0);
                 }
                 *sample = sample.clamp(-1.0, 1.0);
             }
